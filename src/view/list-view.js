@@ -1,4 +1,4 @@
-import View from "./view";
+import View from './view';
 
 function createListTemplate() {
   return '<ul class="trip-events__list"></ul>';

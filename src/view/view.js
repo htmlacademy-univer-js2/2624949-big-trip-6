@@ -1,10 +1,10 @@
-import { createElement } from "../render";
+import { createElement } from '../render';
 
 export default class View {
   #element = null;
 
   get template() {
-    throw new Error("Abstract method not implemented: get template");
+    throw new Error('Abstract method not implemented: get template');
   }
 
   getElement() {
