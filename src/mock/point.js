@@ -79,7 +79,7 @@ const getRandomItems = (items, count) => {
 const createDescription = () =>
   getRandomItems(LOREM_SENTENCES, getRandomInteger(1, 5)).join(' ');
 
-const createDestination = (index, cityName) => ({
+const createDestination = (cityName, index) => ({
   id: `destination-${index + 1}`,
   name: cityName,
   description: createDescription(),
