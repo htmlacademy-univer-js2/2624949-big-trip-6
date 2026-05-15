@@ -253,6 +253,7 @@ export default class EditPointView extends AbstractStatefulView {
       point: {
         ...this._state.point,
         type: evt.target.value,
+        offerIds: [],
       },
     });
   };
