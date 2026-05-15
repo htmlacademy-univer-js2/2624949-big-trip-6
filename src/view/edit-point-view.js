@@ -75,7 +75,12 @@ const createEditPointTemplate = ({
   };
 
   const suffix = safePoint.id;
-
+  let resetButtonText = 'Delete';
+  if (isCreating) {
+    resetButtonText = 'Cancel';
+  } else if (isDeleting) {
+    resetButtonText = 'Deleting...';
+  }
   return `
     <li class="trip-events__item">
       <form class="event event--edit" action="#" method="post">
@@ -122,7 +127,9 @@ const createEditPointTemplate = ({
           </div>
 
           <button class="event__save-btn btn btn--blue" type="submit" ${isDisabled ? 'disabled' : ''}>${isSaving ? 'Saving...' : 'Save'}</button>
-          <button class="event__reset-btn" type="reset" ${isDisabled ? 'disabled' : ''}>${isCreating ? 'Cancel' : isDeleting ? 'Deleting...' : 'Delete'}</button>
+          <button class="event__reset-btn" type="reset" ${isDisabled ? 'disabled' : ''}>
+            ${resetButtonText}
+          </button>
           ${
   isCreating
     ? ''
