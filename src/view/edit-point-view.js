@@ -1,8 +1,9 @@
 import AbstractStatefulView from '../framework/view/abstract-stateful-view.js';
-import { EVENT_TYPES } from '../const';
+import { EVENT_TYPES } from '../const.js';
 import flatpickr from 'flatpickr';
 import 'flatpickr/dist/flatpickr.min.css';
 import dayjs from 'dayjs';
+import { escapeHTML } from '../utils/common.js';
 
 const createTypeItemsTemplate = (currentType, suffix, isDisabled) =>
   EVENT_TYPES.map(
@@ -67,10 +68,10 @@ const createEditPointTemplate = ({
   const safePoint = {
     id: point?.id ?? 'new',
     type: point?.type ?? 'flight',
-    destinationName: destination?.name ?? '',
+    destinationName: escapeHTML(destination?.name ?? ''),
     dateFrom: point?.dateFrom ? dayjs(point.dateFrom).format('DD/MM/YY HH:mm') : '',
     dateTo: point?.dateTo ? dayjs(point.dateTo).format('DD/MM/YY HH:mm') : '',
-    basePrice: point?.basePrice ?? '',
+    basePrice: escapeHTML(String(point?.basePrice ?? '')),
     offerIds: point?.offerIds ?? [],
   };
 
