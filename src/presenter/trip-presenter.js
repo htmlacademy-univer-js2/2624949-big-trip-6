@@ -3,6 +3,7 @@ import SortView from '../view/sort-view.js';
 import ListView from '../view/list-view.js';
 import ListEmptyView from '../view/list-empty-view.js';
 import LoadingView from '../view/loading-view.js';
+import FailedLoadView from '../view/failed-load-view.js';
 import PointPresenter from './point-presenter.js';
 import NewPointPresenter from './new-point-presenter.js';
 import { filter } from '../utils/filter.js';
@@ -24,10 +25,12 @@ export default class TripPresenter {
   #sortComponent = null;
   #listEmptyComponent = null;
   #loadingComponent = new LoadingView();
+  #failedLoadComponent = new FailedLoadView();
   #pointPresenters = new Map();
   #newPointPresenter = null;
   #currentSortType = SortType.DAY;
   #isLoading = true;
+  #isError = false;
   #uiBlocker = new UiBlocker({
     lowerLimit: TimeLimit.LOWER_LIMIT,
     upperLimit: TimeLimit.UPPER_LIMIT
@@ -135,6 +138,13 @@ export default class TripPresenter {
         this.#clearBoard();
         this.#renderBoard();
         break;
+      case UpdateType.ERROR:
+        this.#isLoading = false;
+        this.#isError = true;
+        remove(this.#loadingComponent);
+        this.#clearBoard();
+        this.#renderBoard();
+        break;
     }
   };
 
@@ -218,6 +228,11 @@ export default class TripPresenter {
   #renderBoard() {
     if (this.#isLoading) {
       this.#renderLoading();
+      return;
+    }
+    
+    if (this.#isError) {
+      render(this.#failedLoadComponent, this.#tripEventsContainer);
       return;
     }
 

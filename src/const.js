@@ -36,6 +36,7 @@ const UpdateType = {
   MINOR: 'MINOR',
   MAJOR: 'MAJOR',
   INIT: 'INIT',
+  ERROR: 'ERROR',
 };
 
 export { EVENT_TYPES, FilterType, SortType, UserAction, UpdateType };
