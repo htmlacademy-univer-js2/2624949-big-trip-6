@@ -258,6 +258,29 @@ export default class EditPointView extends AbstractStatefulView {
     });
   };
 
+  #offerChangeHandler = (evt) => {
+    evt.preventDefault();
+    const offerId = evt.target.name.replace('event-offer-', '');
+    const isChecked = evt.target.checked;
+    const currentOfferIds = [...this._state.point.offerIds];
+
+    if (isChecked) {
+      currentOfferIds.push(offerId);
+    } else {
+      const index = currentOfferIds.indexOf(offerId);
+      if (index !== -1) {
+        currentOfferIds.splice(index, 1);
+      }
+    }
+
+    this._setState({
+      point: {
+        ...this._state.point,
+        offerIds: currentOfferIds,
+      },
+    });
+  };
+
   #destinationChangeHandler = (evt) => {
     evt.preventDefault();
     const selectedDestinationName = evt.target.value;
@@ -350,6 +373,10 @@ export default class EditPointView extends AbstractStatefulView {
 
     this.element.querySelector(`#event-destination-${suffix}`).addEventListener('change', this.#destinationChangeHandler);
     this.element.querySelector(`#event-price-${suffix}`).addEventListener('change', this.#priceChangeHandler);
+
+    this.element.querySelectorAll('.event__offer-checkbox').forEach((input) => {
+      input.addEventListener('change', this.#offerChangeHandler);
+    });
 
     if (!this.#isCreating) {
       this.element.querySelector('.event__rollup-btn')?.addEventListener('click', this.#closeClickHandler);
