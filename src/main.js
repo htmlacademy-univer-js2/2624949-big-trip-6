@@ -1,5 +1,6 @@
 import TripPresenter from './presenter/trip-presenter.js';
 import FilterPresenter from './presenter/filter-presenter.js';
+import TripInfoPresenter from './presenter/trip-info-presenter.js';
 import PointsModel from './model/points-model.js';
 import FilterModel from './model/filter-model.js';
 import PointsApiService from './points-api-service.js';
@@ -34,12 +35,18 @@ const filterPresenter = new FilterPresenter({
   pointsModel
 });
 
+const tripInfoPresenter = new TripInfoPresenter({
+  tripInfoContainer: headerElement,
+  pointsModel
+});
+
 newEventButtonComponent.addEventListener('click', (evt) => {
   evt.preventDefault();
   tripPresenter.createPoint();
   newEventButtonComponent.disabled = true;
 });
 
+tripInfoPresenter.init();
 filterPresenter.init();
 tripPresenter.init();
 pointsModel.init()
