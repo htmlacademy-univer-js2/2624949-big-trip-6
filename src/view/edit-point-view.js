@@ -66,7 +66,7 @@ const createEditPointTemplate = ({
 }) => {
   const safePoint = {
     id: point?.id ?? 'new',
-    type: point?.type ?? EVENT_TYPES[0],
+    type: point?.type ?? 'flight',
     destinationName: destination?.name ?? '',
     dateFrom: point?.dateFrom ? dayjs(point.dateFrom).format('DD/MM/YY HH:mm') : '',
     dateTo: point?.dateTo ? dayjs(point.dateTo).format('DD/MM/YY HH:mm') : '',
@@ -193,18 +193,18 @@ export default class EditPointView extends AbstractStatefulView {
     this._setState({
       point: this.#point ?? {
         id: null,
-        type: EVENT_TYPES[0],
+        type: 'flight',
         destinationId: null,
-        dateFrom: new Date().toISOString(),
-        dateTo: new Date().toISOString(),
+        dateFrom: '',
+        dateTo: '',
         basePrice: 0,
         offerIds: [],
       },
-      currentDestinationId: this.#point?.destinationId ?? this.#destinations[0]?.id ?? null,
+      currentDestinationId: this.#point?.destinationId ?? null,
       currentDestinationName: this.#point?.destinationId
         ? this.#destinationsById.get(this.#point.destinationId)?.name
-        : this.#destinations[0]?.name ?? '',
-      currentType: this.#point?.type ?? EVENT_TYPES[0],
+        : '',
+      currentType: this.#point?.type ?? 'flight',
       isDisabled: false,
       isSaving: false,
       isDeleting: false,
