@@ -1,4 +1,4 @@
-import AbstractView from '../framework/view/abstract-view.js';
+import AbstractStatefulView from '../framework/view/abstract-stateful-view.js';
 import { EVENT_TYPES } from '../const';
 
 const createTypeItemsTemplate = (currentType, suffix) =>
@@ -146,7 +146,7 @@ const createEditPointTemplate = ({
   `;
 };
 
-export default class EditPointView extends AbstractView {
+export default class EditPointView extends AbstractStatefulView {
   #point = null;
   #destinations = [];
   #destinationsById = null;
@@ -173,11 +173,16 @@ export default class EditPointView extends AbstractView {
     this.#handleFormSubmit = onFormSubmit;
     this.#handleCloseClick = onCloseClick;
 
-    this.element.querySelector('form').addEventListener('submit', this.#formSubmitHandler);
+    this._setState({
+      point: this.#point,
+      currentDestinationId: this.#point?.destinationId ?? this.#destinations[0]?.id ?? null,
+      currentDestinationName: this.#point?.destinationId
+        ? this.#destinationsById.get(this.#point.destinationId)?.name
+        : this.#destinations[0]?.name ?? '',
+      currentType: this.#point?.type ?? EVENT_TYPES[0],
+    });
 
-    if (!this.#isCreating) {
-      this.element.querySelector('.event__rollup-btn').addEventListener('click', this.#closeClickHandler);
-    }
+    this._restoreHandlers();
   }
 
   #formSubmitHandler = (evt) => {
@@ -190,12 +195,47 @@ export default class EditPointView extends AbstractView {
     this.#handleCloseClick();
   };
 
-  get template() {
-    const destination = this.#point
-      ? this.#destinationsById.get(this.#point.destinationId)
-      : this.#destinations[0];
+  #typeChangeHandler = (evt) => {
+    evt.preventDefault();
+    this.updateElement({
+      currentType: evt.target.value,
+    });
+  };
 
-    const pointType = this.#point?.type ?? EVENT_TYPES[0];
+  #destinationChangeHandler = (evt) => {
+    evt.preventDefault();
+    const selectedDestinationName = evt.target.value;
+    const selectedDestination = this.#destinations.find(
+      (dest) => dest.name === selectedDestinationName,
+    );
+
+    if (selectedDestination) {
+      this.updateElement({
+        currentDestinationId: selectedDestination.id,
+        currentDestinationName: selectedDestinationName,
+      });
+    }
+  };
+
+  _restoreHandlers() {
+    const suffix = this.#point?.id ?? 'new';
+
+    this.element.querySelector('form').addEventListener('submit', this.#formSubmitHandler);
+
+    this.element.querySelectorAll('.event__type-input').forEach((input) => {
+      input.addEventListener('change', this.#typeChangeHandler);
+    });
+
+    this.element.querySelector(`#event-destination-${suffix}`).addEventListener('change', this.#destinationChangeHandler);
+
+    if (!this.#isCreating) {
+      this.element.querySelector('.event__rollup-btn')?.addEventListener('click', this.#closeClickHandler);
+    }
+  }
+
+  get template() {
+    const destination = this.#destinationsById.get(this._state.currentDestinationId);
+    const pointType = this._state.currentType;
     const availableOffers = this.#offers.filter(
       (offer) => offer.type === pointType,
     );
