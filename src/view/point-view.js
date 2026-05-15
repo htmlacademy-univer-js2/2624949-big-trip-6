@@ -1,33 +1,26 @@
 import AbstractView from '../framework/view/abstract-view.js';
+import dayjs from 'dayjs';
 
-const formatDate = (dateString) => {
-  const date = new Date(dateString);
-  return date
-    .toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-    .toUpperCase();
-};
+const formatDate = (dateString) => dayjs(dateString).format('MMM D').toUpperCase();
 
-const formatTime = (dateString) => {
-  const date = new Date(dateString);
-  return date.toLocaleTimeString('en-GB', {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-};
+const formatTime = (dateString) => dayjs(dateString).format('HH:mm');
 
 const formatDuration = (dateFrom, dateTo) => {
-  const durationInMinutes = Math.max(
-    0,
-    Math.round((new Date(dateTo) - new Date(dateFrom)) / (1000 * 60)),
-  );
-  const hours = Math.floor(durationInMinutes / 60);
-  const minutes = durationInMinutes % 60;
+  const start = dayjs(dateFrom);
+  const end = dayjs(dateTo);
+  const diffInMinutes = end.diff(start, 'minute');
 
-  if (hours === 0) {
-    return `${minutes}M`;
+  const days = Math.floor(diffInMinutes / (24 * 60));
+  const hours = Math.floor((diffInMinutes % (24 * 60)) / 60);
+  const minutes = diffInMinutes % 60;
+
+  if (days > 0) {
+    return `${String(days).padStart(2, '0')}D ${String(hours).padStart(2, '0')}H ${String(minutes).padStart(2, '0')}M`;
   }
-
-  return `${String(hours).padStart(2, '0')}H ${String(minutes).padStart(2, '0')}M`;
+  if (hours > 0) {
+    return `${String(hours).padStart(2, '0')}H ${String(minutes).padStart(2, '0')}M`;
+  }
+  return `${String(minutes).padStart(2, '0')}M`;
 };
 
 const createSelectedOffersTemplate = (selectedOffers) =>
