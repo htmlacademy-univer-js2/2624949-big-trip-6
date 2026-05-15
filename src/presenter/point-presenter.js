@@ -1,6 +1,7 @@
-import {render, replace} from '../framework/render.js';
+import {render, replace, remove} from '../framework/render.js';
 import PointView from '../view/point-view.js';
 import EditPointView from '../view/edit-point-view.js';
+import { UserAction, UpdateType } from '../const.js';
 
 export default class PointPresenter {
   #point = null;
@@ -54,10 +55,17 @@ export default class PointPresenter {
 
     if (this.#isEditing) {
       replace(this.#pointEditComponent, previousPointEditComponent);
-      return;
+    } else {
+      replace(this.#pointComponent, previousPointComponent);
     }
 
-    replace(this.#pointComponent, previousPointComponent);
+    remove(previousPointComponent);
+    remove(previousPointEditComponent);
+  }
+
+  destroy() {
+    remove(this.#pointComponent);
+    remove(this.#pointEditComponent);
   }
 
   resetView() {
@@ -88,6 +96,7 @@ export default class PointPresenter {
       offers: this.#offers,
       onFormSubmit: this.#formSubmitHandler,
       onCloseClick: this.#closeClickHandler,
+      onDeleteClick: this.#deleteClickHandler,
     });
   }
 
@@ -102,8 +111,21 @@ export default class PointPresenter {
     this.#switchToEditing();
   };
 
-  #formSubmitHandler = () => {
+  #formSubmitHandler = (updatedPoint) => {
+    this.#handleDataChange(
+      UserAction.UPDATE_POINT,
+      UpdateType.MINOR,
+      updatedPoint,
+    );
     this.resetView();
+  };
+
+  #deleteClickHandler = (point) => {
+    this.#handleDataChange(
+      UserAction.DELETE_POINT,
+      UpdateType.MINOR,
+      point,
+    );
   };
 
   #closeClickHandler = () => {
@@ -111,7 +133,11 @@ export default class PointPresenter {
   };
 
   #favoriteClickHandler = (updatedPoint) => {
-    this.#handleDataChange(updatedPoint);
+    this.#handleDataChange(
+      UserAction.UPDATE_POINT,
+      UpdateType.PATCH,
+      updatedPoint,
+    );
   };
 
   #escKeyDownHandler = (evt) => {
