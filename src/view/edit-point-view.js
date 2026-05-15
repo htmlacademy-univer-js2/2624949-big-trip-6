@@ -133,20 +133,26 @@ const createEditPointTemplate = ({
           `
 }
         </header>
+        ${availableOffers.length > 0 || destination?.description || (destination?.pictures && destination.pictures.length > 0) ? `
         <section class="event__details">
+          ${availableOffers.length > 0 ? `
           <section class="event__section event__section--offers">
             <h3 class="event__section-title event__section-title--offers">Offers</h3>
             <div class="event__available-offers">
               ${createOffersTemplate(availableOffers, safePoint.offerIds, suffix, isDisabled)}
             </div>
           </section>
+          ` : ''}
 
+          ${destination?.description || (destination?.pictures && destination.pictures.length > 0) ? `
           <section class="event__section event__section--destination">
             <h3 class="event__section-title event__section-title--destination">Destination</h3>
             <p class="event__destination-description">${destination?.description ?? ''}</p>
             ${createPhotosTemplate(destination?.pictures ?? [])}
           </section>
+          ` : ''}
         </section>
+        ` : ''}
       </form>
     </li>
   `;
