@@ -134,7 +134,7 @@ const createPoint = (index, destinations, offers) => {
 };
 
 const generatePointsData = (count = 3) => {
-  const destinations = CITY_NAMES.map(createDestination);
+  const destinations = CITY_NAMES.map((cityName, index) => createDestination(index, cityName));
   const offers = createOffers();
   const points = Array.from({ length: count }, (_, index) =>
     createPoint(index, destinations, offers),

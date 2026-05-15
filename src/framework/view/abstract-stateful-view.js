@@ -41,6 +41,11 @@ export default class AbstractStatefulView extends AbstractView {
   #rerenderElement() {
     const prevElement = this.element;
     const parent = prevElement.parentElement;
+
+    if (!parent) {
+      return;
+    }
+
     this.removeElement();
 
     const newElement = this.element;
