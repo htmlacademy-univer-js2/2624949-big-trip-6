@@ -1,20 +1,30 @@
-import {render, remove, RenderPosition} from '../framework/render.js';
-import SortView from '../view/sort-view.js';
+import {render} from '../framework/render.js';
+import FiltersView from '../view/filters-view.js';
+import SortView, { SortType } from '../view/sort-view.js';
 import ListView from '../view/list-view.js';
 import ListEmptyView from '../view/list-empty-view.js';
-import LoadingView from '../view/loading-view.js';
-import FailedLoadView from '../view/failed-load-view.js';
 import PointPresenter from './point-presenter.js';
-import NewPointPresenter from './new-point-presenter.js';
-import TripInfoView from '../view/trip-info-view.js';
-import { filter } from '../utils/filter.js';
-import { sortPointDay, sortPointTime, sortPointPrice } from '../utils/sort.js';
-import { SortType, UpdateType, UserAction, FilterType } from '../const.js';
-import UiBlocker from '../framework/ui-blocker/ui-blocker.js';
 
-const TimeLimit = {
-  LOWER_LIMIT: 350,
-  UPPER_LIMIT: 1000,
+const DEFAULT_SORT_TYPE = SortType.DAY;
+
+function sortPointsByDay(pointA, pointB) {
+  return new Date(pointA.dateFrom) - new Date(pointB.dateFrom);
+}
+
+function sortPointsByTime(pointA, pointB) {
+  const durationA = new Date(pointA.dateTo) - new Date(pointA.dateFrom);
+  const durationB = new Date(pointB.dateTo) - new Date(pointB.dateFrom);
+  return durationB - durationA;
+}
+
+function sortPointsByPrice(pointA, pointB) {
+  return pointB.basePrice - pointA.basePrice;
+}
+
+const SortFunctionMap = {
+  [SortType.DAY]: sortPointsByDay,
+  [SortType.TIME]: sortPointsByTime,
+  [SortType.PRICE]: sortPointsByPrice,
 };
 
 export default class TripPresenter {
@@ -23,21 +33,15 @@ export default class TripPresenter {
   #filterModel = null;
 
   #listComponent = new ListView();
-  #tripInfoComponent = null;
-  #headerContainer = null;
   #sortComponent = null;
-  #listEmptyComponent = null;
-  #loadingComponent = new LoadingView();
-  #failedLoadComponent = new FailedLoadView();
+  #listEmptyComponent = new ListEmptyView();
   #pointPresenters = new Map();
-  #newPointPresenter = null;
-  #currentSortType = SortType.DAY;
-  #isLoading = true;
-  #isError = false;
-  #uiBlocker = new UiBlocker({
-    lowerLimit: TimeLimit.LOWER_LIMIT,
-    upperLimit: TimeLimit.UPPER_LIMIT
-  });
+  #currentSortType = DEFAULT_SORT_TYPE;
+
+  #destinations = null;
+  #destinationsById = null;
+  #offers = null;
+  #offersById = null;
 
   constructor({ tripEventsContainer, pointsModel, filterModel, onNewPointDestroy }) {
     this.#tripEventsContainer = tripEventsContainer;
@@ -81,135 +85,53 @@ export default class TripPresenter {
   }
 
   init() {
-    this.#renderBoard();
-  }
+    const points = this.#pointsModel.points;
+    this.#destinations = this.#pointsModel.destinations;
+    this.#offers = this.#pointsModel.offers;
+    this.#destinationsById = new Map(
+      this.#destinations.map((destination) => [destination.id, destination]),
+    );
+    this.#offersById = new Map(this.#offers.map((offer) => [offer.id, offer]));
 
-  createPoint() {
-    this.#currentSortType = SortType.DAY;
-    this.#filterModel.setFilter(UpdateType.MAJOR, FilterType.EVERYTHING);
-    // If there are no points currently rendered, replace the empty message with the list and sort
-    const points = this.points;
+    const filtersComponent = new FiltersView();
+
+    render(filtersComponent, this.#filtersContainer);
+
     if (points.length === 0) {
-      if (this.#listEmptyComponent) {
-        remove(this.#listEmptyComponent);
-        this.#listEmptyComponent = null;
-      }
-      this.#renderSort();
-      render(this.#listComponent, this.#tripEventsContainer);
+      render(new ListEmptyView(), this.#tripEventsContainer);
+      return;
     }
 
-    this.#newPointPresenter.init(this.destinations, new Map(this.destinations.map((d) => [d.id, d])), this.offers);
-  }
-
-  #handleViewAction = async (actionType, updateType, update) => {
-    this.#uiBlocker.block();
-
-    switch (actionType) {
-      case UserAction.UPDATE_POINT:
-        this.#pointPresenters.get(update.id).setSaving();
-        try {
-          await this.#pointsModel.updatePoint(updateType, update);
-        } catch(err) {
-          this.#pointPresenters.get(update.id).setAborting();
-        }
-        break;
-      case UserAction.ADD_POINT:
-        this.#newPointPresenter.setSaving();
-        try {
-          await this.#pointsModel.addPoint(updateType, update);
-        } catch(err) {
-          this.#newPointPresenter.setAborting();
-        }
-        break;
-      case UserAction.DELETE_POINT:
-        this.#pointPresenters.get(update.id).setDeleting();
-        try {
-          await this.#pointsModel.deletePoint(updateType, update);
-        } catch(err) {
-          this.#pointPresenters.get(update.id).setAborting();
-        }
-        break;
-    }
-
-    this.#uiBlocker.unblock();
-  };
-
-  #handleModelEvent = (updateType, data) => {
-    switch (updateType) {
-      case UpdateType.PATCH:
-        this.#pointPresenters.get(data.id)?.updatePoint(data);
-        break;
-      case UpdateType.MINOR:
-        this.#clearBoard();
-        this.#renderBoard();
-        break;
-      case UpdateType.MAJOR:
-        this.#clearBoard({ resetSortType: true });
-        this.#renderBoard();
-        break;
-      case UpdateType.INIT:
-        this.#isLoading = false;
-        remove(this.#loadingComponent);
-        this.#clearBoard();
-        this.#renderBoard();
-        break;
-      case UpdateType.ERROR:
-        this.#isLoading = false;
-        this.#isError = true;
-        remove(this.#loadingComponent);
-        this.#clearBoard();
-        this.#renderBoard();
-        break;
-    }
-  };
-
-  #handlePointModeChange = (activePointPresenter) => {
-    this.#newPointPresenter.destroy();
-    this.#pointPresenters.forEach((pointPresenter) => {
-      if (pointPresenter !== activePointPresenter) {
-        pointPresenter.resetView();
-      }
-    });
-  };
-
-  #renderPoint(point) {
-    const destinationsById = new Map(this.destinations.map((destination) => [destination.id, destination]));
-    const offersById = new Map(this.offers.map((offer) => [offer.id, offer]));
-
-    const pointPresenter = new PointPresenter({
-      point,
-      destinations: this.destinations,
-      destinationsById,
-      offers: this.offers,
-      offersById,
-      listContainer: this.#listComponent.element,
-      onDataChange: this.#handleViewAction,
-      onModeChange: this.#handlePointModeChange,
+    this.#sortComponent = new SortView({
+      onSortTypeChange: this.#handleSortTypeChange,
     });
 
-    this.#pointPresenters.set(point.id, pointPresenter);
-    pointPresenter.init();
+    render(this.#sortComponent, this.#tripEventsContainer);
+    render(this.#listComponent, this.#tripEventsContainer);
+
+    this.#renderPoints(points);
   }
 
-  #clearBoard({ resetSortType = false } = {}) {
-    this.#newPointPresenter.destroy();
+  #renderPoints(points) {
     this.#pointPresenters.forEach((presenter) => presenter.destroy());
     this.#pointPresenters.clear();
 
-    this.#clearTripInfo();
+    const sortedPoints = [...points].sort(SortFunctionMap[this.#currentSortType]);
 
-    if (this.#sortComponent) {
-      remove(this.#sortComponent);
-    }
+    for (const point of sortedPoints) {
+      const pointPresenter = new PointPresenter({
+        point,
+        destinations: this.#destinations,
+        destinationsById: this.#destinationsById,
+        offers: this.#offers,
+        offersById: this.#offersById,
+        listContainer: this.#listComponent.element,
+        onDataChange: this.#handlePointChange,
+        onModeChange: this.#handlePointModeChange,
+      });
 
-    if (this.#listEmptyComponent) {
-      remove(this.#listEmptyComponent);
-    }
-
-    remove(this.#loadingComponent);
-
-    if (resetSortType) {
-      this.#currentSortType = SortType.DAY;
+      this.#pointPresenters.set(point.id, pointPresenter);
+      pointPresenter.init();
     }
   }
 
@@ -219,80 +141,25 @@ export default class TripPresenter {
     }
 
     this.#currentSortType = sortType;
-    this.#clearBoard();
-    this.#renderBoard();
+    this.#renderPoints(this.#pointsModel.points);
   };
 
-  #renderSort() {
-    this.#sortComponent = new SortView({
-      currentSortType: this.#currentSortType,
-      onSortTypeChange: this.#handleSortTypeChange
+  #handlePointChange = (updatedPoint) => {
+    const pointIndex = this.#pointsModel.points.findIndex((point) => point.id === updatedPoint.id);
+
+    if (pointIndex === -1) {
+      return;
+    }
+
+    this.#pointsModel.points[pointIndex] = updatedPoint;
+    this.#pointPresenters.get(updatedPoint.id)?.updatePoint(updatedPoint);
+  };
+
+  #handlePointModeChange = (activePointPresenter) => {
+    this.#pointPresenters.forEach((pointPresenter) => {
+      if (pointPresenter !== activePointPresenter) {
+        pointPresenter.resetView();
+      }
     });
-    render(this.#sortComponent, this.#tripEventsContainer);
-  }
-
-  #renderTripInfo() {
-    if (!this.#headerContainer) {
-      return;
-    }
-    if (this.#tripInfoComponent) {
-      remove(this.#tripInfoComponent);
-      this.#tripInfoComponent = null;
-    }
-
-    // Use raw model points (unfiltered) so trip info doesn't change with filters/sorting
-    this.#tripInfoComponent = new TripInfoView({
-      points: this.#pointsModel.points,
-      destinations: this.destinations,
-      offers: this.offers
-    });
-    render(this.#tripInfoComponent, this.#headerContainer, RenderPosition.AFTERBEGIN);
-  }
-
-  #clearTripInfo() {
-    if (this.#tripInfoComponent) {
-      remove(this.#tripInfoComponent);
-      this.#tripInfoComponent = null;
-    }
-  }
-
-  #renderListEmpty() {
-    this.#listEmptyComponent = new ListEmptyView({
-      filterType: this.#filterModel.filter
-    });
-    render(this.#listEmptyComponent, this.#tripEventsContainer);
-  }
-
-  #renderLoading() {
-    render(this.#loadingComponent, this.#tripEventsContainer, RenderPosition.AFTERBEGIN);
-  }
-
-  #renderBoard() {
-    if (this.#isLoading) {
-      this.#renderLoading();
-      return;
-    }
-    if (this.#isError) {
-      render(this.#failedLoadComponent, this.#tripEventsContainer);
-      return;
-    }
-
-    const points = this.points;
-    const allPoints = this.#pointsModel.points;
-
-    if (allPoints.length > 0) {
-      this.#renderTripInfo();
-    } else {
-      this.#clearTripInfo();
-    }
-
-    if (points.length === 0) {
-      this.#renderListEmpty();
-      return;
-    }
-
-    this.#renderSort();
-    render(this.#listComponent, this.#tripEventsContainer);
-    points.forEach((point) => this.#renderPoint(point));
-  }
+  };
 }
