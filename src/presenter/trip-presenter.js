@@ -272,7 +272,6 @@ export default class TripPresenter {
       this.#renderLoading();
       return;
     }
-    
     if (this.#isError) {
       render(this.#failedLoadComponent, this.#tripEventsContainer);
       return;
