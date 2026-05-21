@@ -1,5 +1,6 @@
 import AbstractStatefulView from '../framework/view/abstract-stateful-view.js';
 import { EVENT_TYPES } from '../const';
+import { escapeHTML } from '../utils/common.js';
 
 const createTypeItemsTemplate = (currentType, suffix) =>
   EVENT_TYPES.map(
@@ -13,7 +14,7 @@ const createTypeItemsTemplate = (currentType, suffix) =>
 
 const createDestinationOptionsTemplate = (destinations) =>
   destinations
-    .map((destination) => `<option value="${destination.name}"></option>`)
+    .map((destination) => `<option value="${escapeHTML(destination.name)}"></option>`)
     .join('');
 
 const createOffersTemplate = (offers, selectedOfferIds, suffix) =>
@@ -23,7 +24,7 @@ const createOffersTemplate = (offers, selectedOfferIds, suffix) =>
     <div class="event__offer-selector">
       <input class="event__offer-checkbox visually-hidden" id="event-offer-${offer.id}-${suffix}" type="checkbox" name="event-offer-${offer.id}" ${selectedOfferIds.includes(offer.id) ? 'checked' : ''}>
       <label class="event__offer-label" for="event-offer-${offer.id}-${suffix}">
-        <span class="event__offer-title">${offer.title}</span>
+        <span class="event__offer-title">${escapeHTML(offer.title)}</span>
         &plus;&euro;&nbsp;
         <span class="event__offer-price">${offer.price}</span>
       </label>
@@ -43,7 +44,7 @@ const createPhotosTemplate = (pictures) => {
         ${pictures
     .map(
       (picture) =>
-        `<img class="event__photo" src="${picture.src}" alt="${picture.description}">`,
+        `<img class="event__photo" src="${picture.src}" alt="${escapeHTML(picture.description)}">`,
     )
     .join('')}
       </div>
@@ -82,7 +83,7 @@ const createNewPointTemplate = ({
             <label class="event__label event__type-output" for="event-destination-${suffix}">
               ${currentType}
             </label>
-            <input class="event__input event__input--destination" id="event-destination-${suffix}" type="text" name="event-destination" value="${destination?.name ?? ''}" placeholder="Choose destination" list="destination-list-${suffix}">
+            <input class="event__input event__input--destination" id="event-destination-${suffix}" type="text" name="event-destination" value="${escapeHTML(destination?.name ?? '')}" placeholder="Choose destination" list="destination-list-${suffix}">
             <datalist id="destination-list-${suffix}">
               ${createDestinationOptionsTemplate(destinations)}
             </datalist>
@@ -117,7 +118,7 @@ const createNewPointTemplate = ({
 
           <section class="event__section event__section--destination">
             <h3 class="event__section-title event__section-title--destination">Destination</h3>
-            <p class="event__destination-description">${destination?.description ?? ''}</p>
+            <p class="event__destination-description">${escapeHTML(destination?.description ?? '')}</p>
             ${createPhotosTemplate(destination?.pictures ?? [])}
           </section>
         </section>

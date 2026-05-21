@@ -114,8 +114,6 @@ export default class PointPresenter {
       replace(this.#pointComponent, this.#pointEditComponent);
     } catch (err) {
       // Fallback: if replace fails, render point component into the list container
-      // eslint-disable-next-line no-console
-      console.warn('PointPresenter: replace failed in resetView, falling back', err);
       render(this.#pointComponent, this.#listContainer);
       remove(this.#pointEditComponent);
     }
@@ -148,15 +146,10 @@ export default class PointPresenter {
   #switchToEditing = () => {
     this.#handleModeChange(this);
     this.#isEditing = true;
-    // Debug: log when switching to editing for Cypress troubleshooting
-    // eslint-disable-next-line no-console
-    console.log('PointPresenter: switching to editing for', this.#point.id);
     try {
       replace(this.#pointEditComponent, this.#pointComponent);
     } catch (err) {
       // Fallback: if replace fails (parent missing), render edit component into list container
-      // eslint-disable-next-line no-console
-      console.warn('PointPresenter: replace failed, falling back to render', err);
       render(this.#pointEditComponent, this.#listContainer);
       remove(this.#pointComponent);
     }

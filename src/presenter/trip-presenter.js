@@ -241,7 +241,11 @@ export default class TripPresenter {
     }
 
     // Use raw model points (unfiltered) so trip info doesn't change with filters/sorting
-    this.#tripInfoComponent = new TripInfoView({ points: this.#pointsModel.points, destinations: this.destinations, offers: this.offers });
+    this.#tripInfoComponent = new TripInfoView({
+      points: this.#pointsModel.points,
+      destinations: this.destinations,
+      offers: this.offers
+    });
     render(this.#tripInfoComponent, this.#headerContainer, RenderPosition.AFTERBEGIN);
   }
 
