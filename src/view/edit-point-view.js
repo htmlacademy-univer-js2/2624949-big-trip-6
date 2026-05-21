@@ -123,12 +123,12 @@ const createEditPointTemplate = ({
           </div>
 
           <button class="event__save-btn btn btn--blue" type="submit" ${isDisabled ? 'disabled' : ''}>${isSaving ? 'Saving...' : 'Save'}</button>
-          <button class="event__reset-btn" type="reset" ${isDisabled ? 'disabled' : ''}>${isCreating ? 'Cancel' : isDeleting ? 'Deleting...' : 'Delete'}</button>
+          <button class="event__reset-btn" type="reset">${isCreating ? 'Cancel' : isDeleting ? 'Deleting...' : 'Delete'}</button>
           ${
   isCreating
     ? ''
     : `
-            <button class="event__rollup-btn" type="button" ${isDisabled ? 'disabled' : ''}>
+            <button class="event__rollup-btn" type="button">
               <span class="visually-hidden">Open event</span>
             </button>
           `
@@ -211,6 +211,10 @@ export default class EditPointView extends AbstractStatefulView {
       isDeleting: false,
     });
 
+    // Debug: log when edit view constructed
+    // eslint-disable-next-line no-console
+    console.log('EditPointView: constructed for', this.#point?.id ?? 'new');
+
     this._restoreHandlers();
   }
 
@@ -240,8 +244,10 @@ export default class EditPointView extends AbstractStatefulView {
   #deleteClickHandler = (evt) => {
     evt.preventDefault();
     if (this.#isCreating) {
+      // For a new point, the button acts as "Cancel"
       this.#handleCloseClick();
     } else {
+      // For an existing point, it acts as "Delete"
       this.#handleDeleteClick(this._state.point);
     }
   };

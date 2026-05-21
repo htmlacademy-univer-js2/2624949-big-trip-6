@@ -27,7 +27,15 @@ export default class PointsModel extends Observable {
   async init() {
     try {
       this.#destinations = await this.#pointsApiService.destinations;
-      this.#offers = await this.#pointsApiService.offers;
+      // Normalize offers: server may return grouped offers by type
+      const offersResponse = await this.#pointsApiService.offers;
+      if (Array.isArray(offersResponse) && offersResponse.length > 0 && offersResponse[0].offers) {
+        this.#offers = offersResponse.flatMap((group) =>
+          (group.offers || []).map((offer) => ({ ...offer, type: group.type })),
+        );
+      } else {
+        this.#offers = offersResponse;
+      }
       const points = await this.#pointsApiService.points;
       this.#points = points.map(this.#adaptToClient);
       this._notify(UpdateType.INIT);
