@@ -1,8 +1,9 @@
 import AbstractStatefulView from '../framework/view/abstract-stateful-view.js';
-import { EVENT_TYPES } from '../const';
+import { EVENT_TYPES } from '../const.js';
 import flatpickr from 'flatpickr';
 import 'flatpickr/dist/flatpickr.min.css';
 import dayjs from 'dayjs';
+import { escapeHTML } from '../utils/common.js';
 
 const createTypeItemsTemplate = (currentType, suffix, isDisabled) =>
   EVENT_TYPES.map(
@@ -66,21 +67,16 @@ const createEditPointTemplate = ({
 }) => {
   const safePoint = {
     id: point?.id ?? 'new',
-    type: point?.type ?? EVENT_TYPES[0],
-    destinationName: destination?.name ?? '',
+    type: point?.type ?? 'flight',
+    destinationName: escapeHTML(destination?.name ?? ''),
     dateFrom: point?.dateFrom ? dayjs(point.dateFrom).format('DD/MM/YY HH:mm') : '',
     dateTo: point?.dateTo ? dayjs(point.dateTo).format('DD/MM/YY HH:mm') : '',
-    basePrice: point?.basePrice ?? '',
+    basePrice: escapeHTML(String(point?.basePrice ?? '')),
     offerIds: point?.offerIds ?? [],
   };
 
   const suffix = safePoint.id;
-  let resetButtonText = 'Delete';
-  if (isCreating) {
-    resetButtonText = 'Cancel';
-  } else if (isDeleting) {
-    resetButtonText = 'Deleting...';
-  }
+
   return `
     <li class="trip-events__item">
       <form class="event event--edit" action="#" method="post">
@@ -127,9 +123,7 @@ const createEditPointTemplate = ({
           </div>
 
           <button class="event__save-btn btn btn--blue" type="submit" ${isDisabled ? 'disabled' : ''}>${isSaving ? 'Saving...' : 'Save'}</button>
-          <button class="event__reset-btn" type="reset" ${isDisabled ? 'disabled' : ''}>
-            ${resetButtonText}
-          </button>
+          <button class="event__reset-btn" type="reset" ${isDisabled ? 'disabled' : ''}>${isCreating ? 'Cancel' : isDeleting ? 'Deleting...' : 'Delete'}</button>
           ${
   isCreating
     ? ''
@@ -140,20 +134,26 @@ const createEditPointTemplate = ({
           `
 }
         </header>
+        ${availableOffers.length > 0 || destination?.description || (destination?.pictures && destination.pictures.length > 0) ? `
         <section class="event__details">
+          ${availableOffers.length > 0 ? `
           <section class="event__section event__section--offers">
             <h3 class="event__section-title event__section-title--offers">Offers</h3>
             <div class="event__available-offers">
               ${createOffersTemplate(availableOffers, safePoint.offerIds, suffix, isDisabled)}
             </div>
           </section>
+          ` : ''}
 
+          ${destination?.description || (destination?.pictures && destination.pictures.length > 0) ? `
           <section class="event__section event__section--destination">
             <h3 class="event__section-title event__section-title--destination">Destination</h3>
             <p class="event__destination-description">${destination?.description ?? ''}</p>
             ${createPhotosTemplate(destination?.pictures ?? [])}
           </section>
+          ` : ''}
         </section>
+        ` : ''}
       </form>
     </li>
   `;
@@ -194,18 +194,18 @@ export default class EditPointView extends AbstractStatefulView {
     this._setState({
       point: this.#point ?? {
         id: null,
-        type: EVENT_TYPES[0],
+        type: 'flight',
         destinationId: null,
-        dateFrom: new Date().toISOString(),
-        dateTo: new Date().toISOString(),
+        dateFrom: '',
+        dateTo: '',
         basePrice: 0,
         offerIds: [],
       },
-      currentDestinationId: this.#point?.destinationId ?? this.#destinations[0]?.id ?? null,
+      currentDestinationId: this.#point?.destinationId ?? null,
       currentDestinationName: this.#point?.destinationId
         ? this.#destinationsById.get(this.#point.destinationId)?.name
-        : this.#destinations[0]?.name ?? '',
-      currentType: this.#point?.type ?? EVENT_TYPES[0],
+        : '',
+      currentType: this.#point?.type ?? 'flight',
       isDisabled: false,
       isSaving: false,
       isDeleting: false,
@@ -253,6 +253,30 @@ export default class EditPointView extends AbstractStatefulView {
       point: {
         ...this._state.point,
         type: evt.target.value,
+        offerIds: [],
+      },
+    });
+  };
+
+  #offerChangeHandler = (evt) => {
+    evt.preventDefault();
+    const offerId = evt.target.name.replace('event-offer-', '');
+    const isChecked = evt.target.checked;
+    const currentOfferIds = [...this._state.point.offerIds];
+
+    if (isChecked) {
+      currentOfferIds.push(offerId);
+    } else {
+      const index = currentOfferIds.indexOf(offerId);
+      if (index !== -1) {
+        currentOfferIds.splice(index, 1);
+      }
+    }
+
+    this._setState({
+      point: {
+        ...this._state.point,
+        offerIds: currentOfferIds,
       },
     });
   };
@@ -349,6 +373,10 @@ export default class EditPointView extends AbstractStatefulView {
 
     this.element.querySelector(`#event-destination-${suffix}`).addEventListener('change', this.#destinationChangeHandler);
     this.element.querySelector(`#event-price-${suffix}`).addEventListener('change', this.#priceChangeHandler);
+
+    this.element.querySelectorAll('.event__offer-checkbox').forEach((input) => {
+      input.addEventListener('change', this.#offerChangeHandler);
+    });
 
     if (!this.#isCreating) {
       this.element.querySelector('.event__rollup-btn')?.addEventListener('click', this.#closeClickHandler);

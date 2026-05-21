@@ -29,4 +29,6 @@ export const sortPointTime = (pointA, pointB) => {
   return timeB - timeA;
 };
 
-export const sortPointPrice = (pointA, pointB) => pointB.basePrice - pointA.basePrice;
+export const sortPointPrice = (pointA, pointB) => {
+  return pointB.basePrice - pointA.basePrice;
+};
