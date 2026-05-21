@@ -17,7 +17,7 @@ const createTypeItemsTemplate = (currentType, suffix, isDisabled) =>
 
 const createDestinationOptionsTemplate = (destinations) =>
   destinations
-    .map((destination) => `<option value="${destination.name}"></option>`)
+    .map((destination) => `<option value="${escapeHTML(destination.name)}"></option>`)
     .join('');
 
 const createOffersTemplate = (offers, selectedOfferIds, suffix, isDisabled) =>
@@ -27,7 +27,7 @@ const createOffersTemplate = (offers, selectedOfferIds, suffix, isDisabled) =>
     <div class="event__offer-selector">
       <input class="event__offer-checkbox visually-hidden" id="event-offer-${offer.id}-${suffix}" type="checkbox" name="event-offer-${offer.id}" ${selectedOfferIds.includes(offer.id) ? 'checked' : ''} ${isDisabled ? 'disabled' : ''}>
       <label class="event__offer-label" for="event-offer-${offer.id}-${suffix}">
-        <span class="event__offer-title">${offer.title}</span>
+        <span class="event__offer-title">${escapeHTML(offer.title)}</span>
         &plus;&euro;&nbsp;
         <span class="event__offer-price">${offer.price}</span>
       </label>
@@ -47,12 +47,23 @@ const createPhotosTemplate = (pictures) => {
         ${pictures
     .map(
       (picture) =>
-        `<img class="event__photo" src="${picture.src}" alt="${picture.description}">`,
+        `<img class="event__photo" src="${picture.src}" alt="${escapeHTML(picture.description)}">`,
     )
     .join('')}
       </div>
     </div>
   `;
+};
+
+const getResetButtonLabel = (isCreating, isDeleting) => {
+  if (isCreating) {
+    return 'Cancel';
+  }
+  if (isDeleting) {
+    return 'Deleting...';
+  }
+
+  return 'Delete';
 };
 
 const createEditPointTemplate = ({
@@ -123,12 +134,12 @@ const createEditPointTemplate = ({
           </div>
 
           <button class="event__save-btn btn btn--blue" type="submit" ${isDisabled ? 'disabled' : ''}>${isSaving ? 'Saving...' : 'Save'}</button>
-          <button class="event__reset-btn" type="reset" ${isDisabled ? 'disabled' : ''}>${isCreating ? 'Cancel' : isDeleting ? 'Deleting...' : 'Delete'}</button>
+          <button class="event__reset-btn" type="reset">${getResetButtonLabel(isCreating, isDeleting)}</button>
           ${
   isCreating
     ? ''
     : `
-            <button class="event__rollup-btn" type="button" ${isDisabled ? 'disabled' : ''}>
+            <button class="event__rollup-btn" type="button">
               <span class="visually-hidden">Open event</span>
             </button>
           `
@@ -148,7 +159,7 @@ const createEditPointTemplate = ({
           ${destination?.description || (destination?.pictures && destination.pictures.length > 0) ? `
           <section class="event__section event__section--destination">
             <h3 class="event__section-title event__section-title--destination">Destination</h3>
-            <p class="event__destination-description">${destination?.description ?? ''}</p>
+            <p class="event__destination-description">${escapeHTML(destination?.description ?? '')}</p>
             ${createPhotosTemplate(destination?.pictures ?? [])}
           </section>
           ` : ''}
@@ -240,8 +251,10 @@ export default class EditPointView extends AbstractStatefulView {
   #deleteClickHandler = (evt) => {
     evt.preventDefault();
     if (this.#isCreating) {
+      // For a new point, the button acts as "Cancel"
       this.#handleCloseClick();
     } else {
+      // For an existing point, it acts as "Delete"
       this.#handleDeleteClick(this._state.point);
     }
   };
@@ -336,29 +349,45 @@ export default class EditPointView extends AbstractStatefulView {
 
   #setDatepickers() {
     const suffix = this._state.point?.id ?? 'new';
+    const startInput = this.element.querySelector(`#event-start-time-${suffix}`);
+    const endInput = this.element.querySelector(`#event-end-time-${suffix}`);
+
+    if (this.#datepickerFrom) {
+      this.#datepickerFrom.destroy();
+    }
+    if (this.#datepickerTo) {
+      this.#datepickerTo.destroy();
+    }
 
     this.#datepickerFrom = flatpickr(
-      this.element.querySelector(`#event-start-time-${suffix}`),
+      startInput,
       {
         dateFormat: 'd/m/y H:i',
         enableTime: true,
         'time_24hr': true,
+        clickOpens: true,
         defaultDate: this._state.point.dateFrom,
         onChange: this.#dateFromChangeHandler,
       },
     );
 
     this.#datepickerTo = flatpickr(
-      this.element.querySelector(`#event-end-time-${suffix}`),
+      endInput,
       {
         dateFormat: 'd/m/y H:i',
         enableTime: true,
         'time_24hr': true,
+        clickOpens: true,
         defaultDate: this._state.point.dateTo,
         minDate: this._state.point.dateFrom,
         onChange: this.#dateToChangeHandler,
       },
     );
+
+    startInput.addEventListener('click', () => this.#datepickerFrom.open());
+    startInput.addEventListener('focus', () => this.#datepickerFrom.open());
+    endInput.addEventListener('click', () => this.#datepickerTo.open());
+    endInput.addEventListener('focus', () => this.#datepickerTo.open());
   }
 
   _restoreHandlers() {

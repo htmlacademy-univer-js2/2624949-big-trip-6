@@ -51,9 +51,11 @@ export default class AbstractView {
    * @param {shakeCallback} [callback] Функция, которая будет вызвана после завершения анимации
    */
   shake(callback) {
-    this.element.classList.add(SHAKE_CLASS_NAME);
+    const shakeTarget = this.element.querySelector('.event') ?? this.element;
+
+    shakeTarget.classList.add(SHAKE_CLASS_NAME);
     setTimeout(() => {
-      this.element.classList.remove(SHAKE_CLASS_NAME);
+      shakeTarget.classList.remove(SHAKE_CLASS_NAME);
       callback?.();
     }, SHAKE_ANIMATION_TIMEOUT);
   }

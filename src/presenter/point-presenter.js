@@ -110,7 +110,15 @@ export default class PointPresenter {
 
     this.#isEditing = false;
     document.removeEventListener('keydown', this.#escKeyDownHandler);
-    replace(this.#pointComponent, this.#pointEditComponent);
+    try {
+      replace(this.#pointComponent, this.#pointEditComponent);
+    } catch (err) {
+      // Fallback: if replace fails, render point component into the list container
+      render(this.#pointComponent, this.#listContainer);
+      remove(this.#pointEditComponent);
+    }
+    // Recreate edit component to discard unsaved changes
+    this.#pointEditComponent = this.#createEditPointComponent();
   }
 
   #createPointComponent() {
@@ -138,7 +146,13 @@ export default class PointPresenter {
   #switchToEditing = () => {
     this.#handleModeChange(this);
     this.#isEditing = true;
-    replace(this.#pointEditComponent, this.#pointComponent);
+    try {
+      replace(this.#pointEditComponent, this.#pointComponent);
+    } catch (err) {
+      // Fallback: if replace fails (parent missing), render edit component into list container
+      render(this.#pointEditComponent, this.#listContainer);
+      remove(this.#pointComponent);
+    }
     document.addEventListener('keydown', this.#escKeyDownHandler);
   };
 
